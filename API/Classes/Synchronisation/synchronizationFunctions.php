@@ -8,6 +8,7 @@ include_once FUNCTIONS;
 use Coproman\API\Synchronisation\Synchronisation;
 
 
+
 /**
  * Search in the object's array for the entity's parent entity
  */
@@ -60,13 +61,20 @@ function checkAccess($object) {
     $parentID = getParentKey($object,$entity);
 //echo $entityID.'<br/>';
     //Check if we have access
-    $sql = "SELECT 0 as SORT, 'parent' as TYPE, count(*) as NB FROM ";
-    $sql .= checkColumn($parentEntity);
-    $sql .= " WHERE ";
-    $sql .= checkColumn($parentEntity."_USER")." = :user ";
-    $sql .= " AND ";
-    $sql .= checkColumn($parentEntity."_ID");
-    $sql .= " = :parentID UNION ";
+    if(!is_null($parentEntity)) {
+        $sql = "SELECT 0 as SORT, 'parent' as TYPE, count(*) as NB FROM ";
+        $sql .= checkColumn($parentEntity);
+        $sql .= " WHERE ";
+        $sql .= checkColumn($parentEntity."_USER")." = :user ";
+        $sql .= " AND ";
+        $sql .= checkColumn($parentEntity."_ID");
+        $sql .= " = :parentID UNION ";
+
+        $parameters = array('user' => $userID,'parentID' => $parentID, 'entityID' => $entityID);
+    } else {
+        $sql = "SELECT 0 as SORT, 'parent' as TYPE, 1 as NB FROM dual UNION ";
+        $parameters = array('user' => $userID,'entityID' => $entityID);
+    }
     $sql .= "SELECT 1 as SORT,'entity' as TYPE, count(*) as NB FROM ";
     $sql .= checkColumn($entity);
     $sql .= " WHERE ";
@@ -76,7 +84,7 @@ function checkAccess($object) {
     $sql .= " = :entityID";
 //echo $sql.'<br/>';
     $nbLinesRequest = $pdo->prepare($sql);
-    $nbLinesRequest->execute(array('user' => $userID,'parentID' => $parentID, 'entityID' => $entityID));
+    $nbLinesRequest->execute($parameters);
 
     while($lign = $nbLinesRequest->fetch()) {
         //var_dump($lign);
