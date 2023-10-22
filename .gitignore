@@ -1,0 +1,11 @@
+//We remove the tests files, because they may contain javascript files which may contain sensitive informations
+Tests/*
+!Tests/TestBaseAPIs.sql
+
+//We ignore the config.php file, because the config depends on the system
+config.php
+
+//We don't provide the documentation
+API/Documentation.txt
+
+*.DS_Store
