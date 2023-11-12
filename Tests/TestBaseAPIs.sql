@@ -26,7 +26,7 @@ SET time_zone = "+00:00";
 --
 -- Table structure for table `DeleteTracker`
 --
-
+DROP TABLE IF EXISTS `DeleteTracker`;
 CREATE TABLE `DeleteTracker` (
   `DeleteTracker_ID` int(11) NOT NULL,
   `DeleteTracker_DATE` datetime NOT NULL,
@@ -40,7 +40,7 @@ CREATE TABLE `DeleteTracker` (
 --
 -- Table structure for table `DEVICES`
 --
-
+DROP TABLE IF EXISTS `DEVICES`;
 CREATE TABLE `DEVICES` (
   `DEVICE_ID` int(11) NOT NULL COMMENT 'Clé  primaire',
   `DEVICE_UUID` varchar(255) NOT NULL COMMENT 'UUID pour reconnaître de manière unique un appareil',
@@ -59,14 +59,14 @@ CREATE TABLE `DEVICES` (
 INSERT INTO `DEVICES` (`DEVICE_ID`, `DEVICE_UUID`, `DEVICE_NAME`, `DEVICE_USER`, `DEVICE_PRIVATEKEY`, `DEVICE_CONNECTION_DATE`, `DEVICE_ISCONNECTED`, `LAST_SYNC`) VALUES
 (1, 'fjkhgqpuweifjéa', 'Bertrand', 1, '$2y$10$lOB1SN87G0OPT75bN/0zf.WE7DydQ2GKk.oRCyjtqAaRkJQrbpfx.', '2023-10-22 12:03:49', 0, '2023-10-15 15:21:23'),
 (2, 'DF4DC8A4-E360-572E-A39A-742C3D0D4EE9', 'Jaccoud’s MacBook Pro', 1, '$2y$10$/6.kTI.C3S4HHzePeDtlD.lt2M8eZgDVuROMeieOjGzbNztzrUbXG', '2023-10-15 12:02:29', 0, '2023-09-09 15:19:27'),
-(3, '809925B3-180A-4265-8100-E267E295E322', 'Bertrand', 1, '$2y$10$KM1sidSF572Qa4ArEFm4jOX4hbAjpJCRlO2BIvUORAkQ/VL.7iJNS', '2023-10-22 12:04:47', 0, '2023-10-22 12:04:47');
+(3, '809925B3-180A-4265-8100-E267E295E322', 'Bertrand', 1, '$2y$10$KM1sidSF572Qa4ArEFm4jOX4hbAjpJCRlO2BIvUORAkQ/VL.7iJNS', '2023-10-22 12:04:47', 0, '2023-09-29 12:04:47');
 
 -- --------------------------------------------------------
 
 --
 -- Table structure for table `Entites`
 --
-
+DROP TABLE IF EXISTS `Entites`;
 CREATE TABLE `Entites` (
   `Entity_ID` int(11) NOT NULL,
   `Entity_TableName` varchar(20) NOT NULL,
@@ -88,7 +88,7 @@ INSERT INTO `Entites` (`Entity_ID`, `Entity_TableName`, `ENTITY_ORDER`) VALUES
 --
 -- Table structure for table `Feature`
 --
-
+DROP TABLE IF EXISTS `Feature`;
 CREATE TABLE `Feature` (
   `FEATURE_ID` varchar(64) NOT NULL,
   `FEATURE_NAME` varchar(255) DEFAULT NULL,
@@ -130,7 +130,7 @@ INSERT INTO `Feature` (`FEATURE_ID`, `FEATURE_NAME`, `FEATURE_OBJECTIVE`, `FEATU
 --
 -- Table structure for table `Product`
 --
-
+DROP TABLE IF EXISTS `Product`;
 CREATE TABLE `Product` (
   `PRODUCT_ID` varchar(64) NOT NULL,
   `PRODUCT_NAME` varchar(255) DEFAULT NULL,
@@ -158,7 +158,7 @@ INSERT INTO `Product` (`PRODUCT_ID`, `PRODUCT_NAME`, `PRODUCT_ISHIDDEN`, `PRODUC
 --
 -- Table structure for table `ProgramClass`
 --
-
+DROP TABLE IF EXISTS `ProgramClass`;
 CREATE TABLE `ProgramClass` (
   `PROGRAMCLASS_ID` varchar(64) NOT NULL,
   `PROGRAMCLASS_NAME` varchar(255) DEFAULT NULL,
@@ -176,7 +176,7 @@ CREATE TABLE `ProgramClass` (
 --
 -- Table structure for table `SynchronisationRequests`
 --
-
+DROP TABLE IF EXISTS `SynchronisationRequests`;
 CREATE TABLE `SynchronisationRequests` (
   `SR_ID` int(11) NOT NULL,
   `SR_USER` int(11) NOT NULL COMMENT 'User that requests the connexion',
@@ -192,7 +192,7 @@ CREATE TABLE `SynchronisationRequests` (
 --
 -- Table structure for table `ToDo`
 --
-
+DROP TABLE IF EXISTS `ToDo`;
 CREATE TABLE `ToDo` (
   `TODO_ID` varchar(64) NOT NULL,
   `TODO_TITLE` varchar(255) DEFAULT NULL,
@@ -261,7 +261,7 @@ INSERT INTO `ToDo` (`TODO_ID`, `TODO_TITLE`, `TODO_STATUS`, `TODO_PRIORITY`, `TO
 --
 -- Table structure for table `Users`
 --
-
+DROP TABLE IF EXISTS `Users`;
 CREATE TABLE `Users` (
   `USER_ID` int(11) NOT NULL,
   `USER_FIRSTNAME` varchar(30) NOT NULL,
@@ -274,8 +274,8 @@ CREATE TABLE `Users` (
 -- Dumping data for table `Users`
 --
 
-INSERT INTO `Users` (`USER_ID`, `USER_FIRSTNAME`, `USER_LASTNAME`, `USER_EMAIL`, `USER_PASSWORD`) VALUES
-(1, 'TestSystem', 'SYSTEM', 'damien.jaccoud@hotmail.com', '$2y$10$nswoRK7V96vy4E14NX3CM.o/PiRDOdTc4BWX6b4Il1URO5J3AE.Si');
+/*INSERT INTO `Users` (`USER_ID`, `USER_FIRSTNAME`, `USER_LASTNAME`, `USER_EMAIL`, `USER_PASSWORD`) VALUES
+(1, 'TestSystem', 'SYSTEM', 'damien.jaccoud@hotmail.com', '$2y$10$nswoRK7V96vy4E14NX3CM.o/PiRDOdTc4BWX6b4Il1URO5J3AE.Si');*/
 
 --
 -- Indexes for dumped tables

@@ -180,8 +180,8 @@ function updateEntity($value) {
     $str .= " WHERE ".checkColumn($entity."_ID")." = :id";
     $arrayValues["id"] = $id;
 
-    //$sync->debug["UpdateRequest"] = $str;
-    //$sync->debug["UpdateValues"] = $arrayValues;
+    $sync->debug["UpdateRequest"] = $str;
+    $sync->debug["UpdateValues"] = $arrayValues;
 
     executeSQL($str,$arrayValues,$id, $entity);
 }

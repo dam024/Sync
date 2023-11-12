@@ -10,7 +10,7 @@
  *  
  ***********************************************/
 require_once '../config.php';
-include_once PDO;
+require_once PDO;
 
 require_once CLASSES.'/CPError.php';
 use Coproman\API\CPError;
@@ -76,9 +76,10 @@ function setInputToSync($input) {
 */
 function setOutputToSync($output) {
     global $pdo, $synchRequest;
-
-    $update = $pdo->prepare("UPDATE SynchronisationRequests SET SR_OutputData = :output WHERE SR_ID = :id");
-    $update->execute(array('output' => $output, 'id' => $synchRequest));
+    if(isset($synchRequest) && $synchRequest != -1) {
+        $update = $pdo->prepare("UPDATE SynchronisationRequests SET SR_OutputData = :output WHERE SR_ID = :id");
+        $update->execute(array('output' => $output, 'id' => $synchRequest));
+    }
 }
 /**
  * Get all entities of the data model

@@ -92,6 +92,8 @@ if(isset($_POST["data"])) {
                 $dbVersion;
                 if(canUpdate($entity,$id,((array)$value)[$sync->lastModified],$dbVersion)) {
                     updateEntity($value);
+                } else {
+                    array_push($keep,$value);
                 }
                 break;
 
@@ -182,13 +184,14 @@ if(isset($_POST["data"])) {
 
 updateDeviceLastSync($deviceID); //PUT BACK !!!!!!!!!
 if($pdo->inTransaction()) {
-    if(!isset($_POST['test']) || !$_POST['test']) {
+    //if(!isset($_POST['test']) || !$_POST['test']) {
         $pdo->commit();
-    } else {
-        $pdo->rollback();
-    }
+    /*} else {
+        //$pdo->rollback();
+    }*/
 }
 updateSynchStatus(SynchStatus::success);
+//$sync->debug['testEntity'] = $pdo->query("SELECT * FROM ToDo WHERE ToDo_ID='770EF19D-968B-4336-80DF-8CB1C265F01E'")->fetchAll();
 $sync->exit();
 
 function getUseFullKeys($keys,$removeID=false) {
@@ -233,16 +236,32 @@ function  updateDeviceLastSync($device) {
     $query = $pdo->prepare($sql);
     $query->execute($values);
 }
+/**
+ * This function is here to detect the conflicts between the entities
+ * @param $entity {String} The entity we would like to update
+ * @param $id {String} The id of the entity
+ * @param $lastModified {String} The date and time the entity was modified on the user side
+ * @param $lign {array} The array containing the result of the query after execution of the function
+ * 
+ * @return {Boolean} `true` if the entity can be updated. 
+ */
 function canUpdate($entity,$id,$lastModified,&$lign) {
-    global $pdo;
+    global $pdo,$sync;
     //We get the date of the last modification of the object
     $sql = "SELECT * FROM ".checkColumn($entity)." WHERE ".checkColumn($entity."_ID")." = :id";
     $values = array('id' => $id);
     $query = $pdo->prepare($sql);
     $query->execute($values);
     if($lign = $query->fetch()) {
-        $dbDate = $lign['LAST_MODIF'];
-        return $lastModified>$dbDate;
+        $dbDate = new DateTime($lign['LAST_MODIF']);
+        $last = new DateTime($lastModified);
+        if($id == "770EF19D-968B-4336-80DF-8CB1C265F01E") {
+            $sync->debug['lastUpdate'] = $last;
+            $sync->debug['serverlastUpdate'] = $dbDate;
+            $sync->debug['lastUpdateId'] = $id;
+        }
+        //return $lastModified>$dbDate;
+        return $last>$dbDate;
     }
     return true;
 }
@@ -262,7 +281,7 @@ function generateModifications($device,$sendBackAll) {
                 left join DEVICES on DEVICE_MODIF = DEVICE_ID
                 where DEVICE_USER = (select DEVICE_USER from DEVICES where DEVICE_ID = :device_id) ";
                 if(!$sendBackAll) {
-                    $sql .= "and LAST_MODIF > (select LAST_SYNC from DEVICES where DEVICE_ID = :device_id)
+                    $sql .= "and LAST_MODIF >= (select LAST_SYNC from DEVICES where DEVICE_ID = :device_id)
                     and DEVICE_ID <> :device_id;";
                 }
         $query = $pdo->prepare(str_replace('$[table_name]',checkColumn($entity),$sql));
@@ -296,7 +315,7 @@ function buildObject($sqlResult,$entity) {
 function prepareToDelete($entity,$id,$deviceID) {
     global $pdo,$sync;
     $sql = "INSERT INTO DeleteTracker (`DeleteTracker_DATE`,`DeleteTracker_ENTITY`,`DeleteTracker_ObjID`,`DeleteTracker_DEVICE`)
-        SELECT CURRENT_TIMESTAMP as DeleteTracker_DATE, ':entity' as DeleteTracker_ENTITY, ':id' as DeleteTracker_ObjID, :device_id as DeleteTracker_DEVICE FROM :entity
+        SELECT CURRENT_TIMESTAMP as DeleteTracker_DATE, ':entity' as DeleteTracker_ENTITY, :id as DeleteTracker_ObjID, :device_id as DeleteTracker_DEVICE FROM :entity
         -- left join DEVICES on DEVICE_ID = :entity_DEVICE
         where :entity_ID = :id";
     $query = $pdo->prepare(str_replace(':entity',checkColumn($entity),$sql));

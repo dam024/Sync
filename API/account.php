@@ -126,6 +126,7 @@ if(isset($_POST['Action'])) {
             $user->execute(array('email' => $userEmail));
             if($lign = $user->fetch()) {
                 if(!password_verify($userPassword, $lign["USER_PASSWORD"])) {
+                    $account->debug['wrongPassword'] = true;
                     $account->error = new CPError(406,'Wrong username or password');
                     $account->exit();
                 }
@@ -140,6 +141,7 @@ if(isset($_POST['Action'])) {
                 //Create the connection
                 connectDevice($user->userID);
             } else {
+                $account->debug['sqlGetUser'] = $user->queryString;
                 $account->error = new CPError(406,'Wrong username or password');
                 $account->exit();
             }
@@ -162,7 +164,6 @@ if(isset($_POST['Action'])) {
 } else {
     $account->error = new CPError(405,'Access denied');
 }
-
 $account->exit();
 
 function getValue($key,$msg,$code = 405) {
@@ -191,33 +192,45 @@ function connectDevice($userId) {
     $exists = $pdo->prepare("SELECT count(*) as nb FROM DEVICES WHERE DEVICE_UUID = :uuid");
     $exists->execute(array('uuid' => $deviceUUID));
     if($l = $exists->fetch()) {
-        if(intval($l["NB"]) > 0) {
-            $rm = $pdo->prepare("DELETE FROM DEVICES WHERE DEVICE_UUID = :uuid");
-            $rm->execute(array('uuid' => $deviceUUID));
+        if(intval($l["NB"]) > 0) {//It already exists, so we update it
+            //$rm = $pdo->prepare("DELETE FROM DEVICES WHERE DEVICE_UUID = :uuid");
+            //$rm->execute(array('uuid' => $deviceUUID));
+
+            $update = $pdo->prepare("UPDATE DEVICES SET DEVICE_ISCONNECTED=1, DEVICE_PRIVATEKEY=:privateKey WHERE DEVICE_UUID = :id");
+            $update->execute(array('id' => $deviceUUID, 'privateKey' => password_hash($devicePrivateKey, PASSWORD_DEFAULT)));
+
+            //Then, we collect the necessary informations
+            $select = $pdo->prepare("SELECT * FROM DEVICES WHERE DEVICE_UUID = :uuid");
+            $select->execute(array('uuid' => $deviceUUID));
+
+            if($lign = $select->fetch()) {
+                $key = $lign['DEVICE_ID'];
+            }
+        } else {//If it didn't exist, we create it
+            //Get new primary key
+            $getPK = $pdo->query("SELECT Max(DEVICE_ID)+1 as device_id FROM DEVICES");
+            if($l = $getPK->fetch()) {
+                $key = $l["DEVICE_ID"];
+            }
+            if(!isset($key) || is_null($key)) {
+                $key = 1;
+            }
+
+            $insert = $pdo->prepare("INSERT INTO DEVICES (DEVICE_ID,DEVICE_UUID, DEVICE_NAME, DEVICE_USER, DEVICE_PRIVATEKEY,DEVICE_ISCONNECTED) VALUES (:id,:uuid, :name, :user, :privateKey, 1)");
+            $insert->execute(array(
+                'id' => $key,
+                'uuid' => $deviceUUID, 
+                'name' => $deviceName, 
+                'user' => $userId, 
+                'privateKey' => password_hash($devicePrivateKey, PASSWORD_DEFAULT)
+            ));
+
+            if($insert->errorCode() != "00000") {
+                $account->error = new CPError(410, 'Impossible to connect to account', $insert->errorInfo());
+                $account->exit();
+            }
         }
-    }
 
-    //Get new primary key
-    $getPK = $pdo->query("SELECT Max(DEVICE_ID)+1 as device_id FROM DEVICES");
-    if($l = $getPK->fetch()) {
-        $key = $l["DEVICE_ID"];
-    }
-    if(!isset($key) || is_null($key)) {
-        $key = 1;
-    }
-
-    $insert = $pdo->prepare("INSERT INTO DEVICES (DEVICE_ID,DEVICE_UUID, DEVICE_NAME, DEVICE_USER, DEVICE_PRIVATEKEY,DEVICE_ISCONNECTED) VALUES (:id,:uuid, :name, :user, :privateKey, 1)");
-    $insert->execute(array(
-        'id' => $key,
-        'uuid' => $deviceUUID, 
-        'name' => $deviceName, 
-        'user' => $userId, 
-        'privateKey' => password_hash($devicePrivateKey, PASSWORD_DEFAULT)
-    ));
-    if($insert->errorCode() != "00000") {
-        $account->error = new CPError(410, 'Impossible to connect to account', $insert->errorInfo());
-        $account->exit();
-    } else {
         $device = new Device();
         $device->deviceID = intval($key);
         $device->name = $deviceName;
@@ -226,6 +239,9 @@ function connectDevice($userId) {
 
         $account->device = $device;
     }
+
+    
+    
 }
 
 ?>

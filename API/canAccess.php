@@ -43,6 +43,7 @@ $deviceID = getValue('deviceID',$connexionInfos);
 $privateKey = getValue('privateKey',$connexionInfos);
 
 newSynchronisation($userID, $deviceID);
+$GENERAL_DEBUG['AccessValuesCorrect'] = true;
 
 //On check la connexion
 $user = $pdo->prepare("SELECT DEVICE_PRIVATEKEY FROM DEVICES left join Users on DEVICE_USER = USER_ID WHERE USER_ID = :userID and DEVICE_ID = :deviceID");
@@ -54,12 +55,14 @@ if($user->errorCode() != "00000") {
 if($user->rowCount() != 1) {
     accessError();
 } else {
+    $GENERAL_DEBUG['AccessLineFound'] = true;
     $lign = $user->fetch();
     if(!password_verify($privateKey, $lign["DEVICE_PRIVATEKEY"])) {
         accessError();
     }
 }
 
+$GENERAL_DEBUG['AccessAllowed'] = true;
 
 function accessError($nb = 405, $msg = 'Access denied',$debugInfos=[]) {
     global $pdo;
