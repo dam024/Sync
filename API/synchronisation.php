@@ -84,16 +84,20 @@ if(isset($_POST["data"])) {
         $keep = array();
         $length = count($copy);
         foreach($copy as $key => $value) {
+            /*var_dump($value);
+            echo '<br/>';
+            var_dump(checkAccess($value));
+            echo '<br/>';*/
             switch(checkAccess($value)) {
 
                 case AccessRightState::Allowed:
                 $entity = ((array)$value)[$sync->entityKey];
                 $id = ((array)$value)[$entity."_ID"];
                 $dbVersion;
-                if(canUpdate($entity,$id,((array)$value)[$sync->lastModified],$dbVersion)) {
+                if(canUpdate($entity,$id,((array)$value)[$sync->lastModified], $deviceID,$dbVersion)) {//If we cannot update it, it means that we have a conflict
                     updateEntity($value);
                 } else {
-                    array_push($keep,$value);
+                    array_push($sync->return['conflicts'],$value);
                 }
                 break;
 
@@ -215,14 +219,14 @@ function prepareValue($val) {
     return $val;
 }
 
-function executeSQL($str, $arrayValues,$id,$entity) {
+function executeSQL($str, $arrayValues,$id='',$entity='') {
     global $pdo,$sync;
     $insertQuery = $pdo->prepare($str);
     //array_push($sync->modifs,array('entity' => $entity, 'id' => $id));
     try {
         $insertQuery->execute($arrayValues);
     } catch (PDOException $e) {
-        $sync->error = new CPError(410,[$e, $insertQuery->queryString]);
+        $sync->error = new CPError(410,"SQL Error",[$e, $insertQuery->queryString,$arrayValues]);
         $sync->debug["error"] = $insertQuery->errorInfo();
         $sync->exit();
     }
@@ -245,7 +249,7 @@ function  updateDeviceLastSync($device) {
  * 
  * @return {Boolean} `true` if the entity can be updated. 
  */
-function canUpdate($entity,$id,$lastModified,&$lign) {
+function canUpdate($entity,$id,$lastModified,$deviceID,&$lign) {
     global $pdo,$sync;
     //We get the date of the last modification of the object
     $sql = "SELECT * FROM ".checkColumn($entity)." WHERE ".checkColumn($entity."_ID")." = :id";
@@ -255,13 +259,14 @@ function canUpdate($entity,$id,$lastModified,&$lign) {
     if($lign = $query->fetch()) {
         $dbDate = new DateTime($lign['LAST_MODIF']);
         $last = new DateTime($lastModified);
-        if($id == "770EF19D-968B-4336-80DF-8CB1C265F01E") {
+        $deviceModified = $lign['DEVICE_MODIF'];
+        /*if($id == "770EF19D-968B-4336-80DF-8CB1C265F01E") {
             $sync->debug['lastUpdate'] = $last;
             $sync->debug['serverlastUpdate'] = $dbDate;
             $sync->debug['lastUpdateId'] = $id;
-        }
+        }*/
         //return $lastModified>$dbDate;
-        return $last>$dbDate;
+        return $last>$dbDate || $deviceModified == $deviceID;
     }
     return true;
 }
@@ -273,17 +278,27 @@ function generateModifications($device,$sendBackAll) {
     $sync->debug['sendBackAllVerif'] = $sendBackAll;
     //First, get all entities, so that we have one request per table, because the name of the columns are different
     $entities = getEntities();
+
+    $toDelete = "";
     //var_dump($entities);
     //Then, for each entity, execute the SQL and build the result
     $parameters = array('device_id' => $device);
     foreach ($entities as $key => $entity) {
-        $sql = "SELECT $[table_name].* from  $[table_name]
+        /*$sql = "SELECT $[table_name].* from  $[table_name]
                 left join DEVICES on DEVICE_MODIF = DEVICE_ID
                 where DEVICE_USER = (select DEVICE_USER from DEVICES where DEVICE_ID = :device_id) ";
                 if(!$sendBackAll) {
                     $sql .= "and LAST_MODIF >= (select LAST_SYNC from DEVICES where DEVICE_ID = :device_id)
                     and DEVICE_ID <> :device_id;";
-                }
+                }*/
+        $sql = "SELECT $[table_name].*, CHANGESTRACKER_IDS FROM $[table_name]
+                INNER JOIN (
+                    SELECT GROUP_CONCAT(ChangesTracker_ID SEPARATOR ', ') as ChangesTracker_IDs, ChangesTracker_ObjID,ChangesTracker_ENTITY FROM `ChangesTracker` 
+                    
+                    WHERE ChangesTracker_Type = 'modif' and ChangesTracker_DEVICE=:device_id
+                    GROUP BY ChangesTracker_ObjID, ChangesTracker_ENTITY
+                ) ChangesTracker ON trim($[table_name]_ID) = trim(ChangesTracker_ObjID) AND trim(ChangesTracker_ENTITY) = '$[table_name]'
+                ;";
         $query = $pdo->prepare(str_replace('$[table_name]',checkColumn($entity),$sql));
         $sync->debug['requestString'] = $query->queryString;
         try {
@@ -296,12 +311,19 @@ function generateModifications($device,$sendBackAll) {
 
         while($lign = $query->fetch()) {
             $sync->appendModifiedObject(buildObject($lign,$entity));
+            $toDelete .= (($toDelete != "") ? "," : "") . $lign['CHANGESTRACKER_IDS'];
         }
-    }   
+    }
+    $sync->debug['$toDelete'] = $toDelete;
+    //Now, we can delete the lines we have treated
+    if($toDelete != "") {
+        $sql = "DELETE FROM ChangesTracker WHERE ChangesTracker_ID IN (:ids)";
+        executeSQL(str_replace(':ids',$toDelete,$sql),array());
+    }
 }
 
 function buildObject($sqlResult,$entity) {
-    $excludedKeys = array('LAST_SYNC','DEVICE_MODIF',strtoupper($entity).'_USER');
+    $excludedKeys = array('LAST_SYNC','DEVICE_MODIF',strtoupper($entity).'_USER','CHANGESTRACKER_IDS');
     $arr = array();
     foreach($sqlResult as $key => $value) {
         if(in_array($key,$excludedKeys)) {
@@ -314,8 +336,8 @@ function buildObject($sqlResult,$entity) {
 }
 function prepareToDelete($entity,$id,$deviceID) {
     global $pdo,$sync;
-    $sql = "INSERT INTO DeleteTracker (`DeleteTracker_DATE`,`DeleteTracker_ENTITY`,`DeleteTracker_ObjID`,`DeleteTracker_DEVICE`)
-        SELECT CURRENT_TIMESTAMP as DeleteTracker_DATE, ':entity' as DeleteTracker_ENTITY, :id as DeleteTracker_ObjID, :device_id as DeleteTracker_DEVICE FROM :entity
+    $sql = "INSERT INTO ChangesTracker (`ChangesTracker_DATE`,`ChangesTracker_ENTITY`,`ChangesTracker_ObjID`,`ChangesTracker_DEVICE`,`ChangesTracker_Type`)
+        SELECT CURRENT_TIMESTAMP as ChangesTracker_DATE, ':entity' as ChangesTracker_ENTITY, :id as ChangesTracker_ObjID, :device_id as ChangesTracker_DEVICE, 'delete' as ChangesTracker_Type FROM :entity
         -- left join DEVICES on DEVICE_ID = :entity_DEVICE
         where :entity_ID = :id";
     $query = $pdo->prepare(str_replace(':entity',checkColumn($entity),$sql));
@@ -330,11 +352,12 @@ function prepareToDelete($entity,$id,$deviceID) {
 
 function generateDeletedElements($deviceID) {
     global $pdo,$sync;
-    $sql = "SELECT DeleteTracker_ENTITY as entity,DeleteTracker_ObjID as id from DeleteTracker
-        left join DEVICES on DEVICE_ID = DeleteTracker_DEVICE
+    $sql = "SELECT ChangesTracker_ENTITY as entity,ChangesTracker_ObjID as id from ChangesTracker
+        left join DEVICES on DEVICE_ID = ChangesTracker_DEVICE
         where 
-        DeleteTracker_DATE > (select LAST_SYNC from DEVICES where DEVICE_ID = :device_id) 
-        and DEVICE_USER = (select DEVICE_USER from DEVICES where DEVICE_ID = :device_id) and DeleteTracker_DEVICE <> :device_id";
+        ChangesTracker_DATE > (select LAST_SYNC from DEVICES where DEVICE_ID = :device_id) 
+        and DEVICE_USER = (select DEVICE_USER from DEVICES where DEVICE_ID = :device_id) and ChangesTracker_DEVICE <> :device_id
+        and ChangesTracker_Type='delete'";
     $query = $pdo->prepare($sql);
     try {
         $query->execute(array('device_id' => $deviceID));

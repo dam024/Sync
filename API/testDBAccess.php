@@ -54,10 +54,12 @@ if(isset($_POST['sqlRequest']) && $_POST['sqlRequest'] == true) {
             $result = $pdo->query($sql);
             $sqlRequestResult->sqlResult = $result->fetchAll();
             //$sqlRequestResult->debug = "Don't forget to restrict access";
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $sqlRequestResult->error = new CPError(407,'SQL Error', $e);
-        } catch (PDOException $e) {
+            $sqlRequestResult->exit();
+        } catch ( \PDOException $e) {
             $sqlRequestResult->error = new CPError(407,'SQL Error', $e);
+            $sqlRequestResult->exit();
         }
     } else {
         $sqlRequestResult->error = new CPError(406,'Illegal request');
@@ -67,7 +69,7 @@ if(isset($_POST['sqlRequest']) && $_POST['sqlRequest'] == true) {
     accessError();
 }
 
-$sqlRequestResult->exit(true);
+$sqlRequestResult->exit();
 
 /**
  * Check if the SQL request is allowed. 

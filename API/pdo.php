@@ -60,8 +60,28 @@
 	//test DataBase initialization
 	if($IS_TEST_SYSTEM) {
 		$testSystemManager = new Coproman\System\PDO\TestSystemManager();
+
+		//Clean up
+		if(isset($_POST['cleanUp']) && $_POST['cleanUp'] == true) {
+			if(\Config\CONF_CLEAN_UP_AT_TEST_SESSION_CLOSURE) {
+				$dirPath = TEST_DATA_INIT."/tmp";
+				//Empty the directory
+				foreach( new DirectoryIterator($dirPath) as $fileInfo) {
+					if($fileInfo->isDot()) continue;
+					unlink($dirPath."/".$fileInfo->getFileName());
+				}
+				//Delete the directory
+				rmdir($dirPath);
+
+				//unset($TEST_INIT_FILE);//The file doesn't exist anymore
+			}
+
+			$testSystemManager->status = 0;
+			$testSystemManager->message = "Clean up complete"; 
+			$testSystemManager->exit();
+		}
 		//Load the data from the previous session or create a subDB for the current session
-		if(isset($_POST['sessionName']) && $_POST['sessionName'] != '' && !isset($_POST['cleanUp'])) {
+		if(isset($_POST['sessionName']) && $_POST['sessionName'] != '') {
 			$sessionName = $_POST['sessionName'];
 
 			session_id(reduceSessionNameForId($sessionName));
@@ -78,7 +98,7 @@
 			$GENERAL_DEBUG['forceReinit'] = $forceReinit;
 			$GENERAL_DEBUG['sessionLifetime'] = $sessionLifeTime;
 			$GENERAL_DEBUG['currentTime'] = time();
-			if($forceReinit) {
+			if($forceReinit /*&& $lastSessionTime != 0*/) {
 				$GENERAL_DEBUG['message'] = "The data was reloaded. If you see an error, this may be the cause. To solve this, set the POST parameter `sessionLifetime` to extend the availability of the data";
 			}
 
@@ -122,23 +142,6 @@
 		if(isset($_POST['initializeTestSystem']) && $_POST['initializeTestSystem'] == true) {
 			$testSystemManager->status = 1;
 			$testSystemManager->message = "Initialization complete"; 
-			$testSystemManager->exit();
-		}
-		if(isset($_POST['cleanUp']) && $_POST['cleanUp'] == true) {
-
-			$dirPath = TEST_DATA_INIT."/tmp";
-			//Empty the directory
-			foreach( new DirectoryIterator($dirPath) as $fileInfo) {
-				if($fileInfo->isDot()) continue;
-				unlink($dirPath."/".$fileInfo->getFileName());
-			}
-			//Delete the directory
-			rmdir($dirPath);
-
-			unset($TEST_INIT_FILE);//The file doesn't exist anymore
-
-			$testSystemManager->status = 0;
-			$testSystemManager->message = "Clean up complete"; 
 			$testSystemManager->exit();
 		}
 	}

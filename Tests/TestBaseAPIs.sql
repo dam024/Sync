@@ -24,15 +24,16 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
--- Table structure for table `DeleteTracker`
+-- Table structure for table `ChangesTracker`
 --
-DROP TABLE IF EXISTS `DeleteTracker`;
-CREATE TABLE `DeleteTracker` (
-  `DeleteTracker_ID` int(11) NOT NULL,
-  `DeleteTracker_DATE` datetime NOT NULL,
-  `DeleteTracker_ENTITY` varchar(20) NOT NULL,
-  `DeleteTracker_ObjID` varchar(64) NOT NULL,
-  `DeleteTracker_DEVICE` int(11) NOT NULL
+DROP TABLE IF EXISTS `ChangesTracker`;
+CREATE TABLE `ChangesTracker` (
+  `ChangesTracker_ID` int(11) NOT NULL,
+  `ChangesTracker_DATE` datetime NOT NULL,
+  `ChangesTracker_ENTITY` varchar(20) NOT NULL,
+  `ChangesTracker_ObjID` varchar(64) NOT NULL,
+  `ChangesTracker_DEVICE` int(11) NOT NULL,
+  `ChangesTracker_Type` char(6) NOT NULL COMMENT '`modif` or `delete` to indicate the type of changes in the data'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -282,10 +283,10 @@ CREATE TABLE `Users` (
 --
 
 --
--- Indexes for table `DeleteTracker`
+-- Indexes for table `ChangesTracker`
 --
-ALTER TABLE `DeleteTracker`
-  ADD PRIMARY KEY (`DeleteTracker_ID`);
+ALTER TABLE `ChangesTracker`
+  ADD PRIMARY KEY (`ChangesTracker_ID`);
 
 --
 -- Indexes for table `DEVICES`
@@ -340,10 +341,10 @@ ALTER TABLE `Users`
 --
 
 --
--- AUTO_INCREMENT for table `DeleteTracker`
+-- AUTO_INCREMENT for table `ChangesTracker`
 --
-ALTER TABLE `DeleteTracker`
-  MODIFY `DeleteTracker_ID` int(11) NOT NULL AUTO_INCREMENT;
+ALTER TABLE `ChangesTracker`
+  MODIFY `ChangesTracker_ID` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `DEVICES`

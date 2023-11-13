@@ -5,6 +5,7 @@ require_once '../config.php';
 require_once CLASSES.'/Synchronisation/Synchronisation.php';
 include_once PDO;
 include_once FUNCTIONS;
+use Coproman\API\CPError;
 use Coproman\API\Synchronisation\Synchronisation;
 
 
@@ -59,7 +60,7 @@ function checkAccess($object) {
     $parentEntity = getParentEntity($object);
     $entityID = ((array)$object)[$entity."_ID"];
     $parentID = getParentKey($object,$entity);
-//echo $entityID.'<br/>';
+
     //Check if we have access
     if(!is_null($parentEntity)) {
         $sql = "SELECT 0 as SORT, 'parent' as TYPE, count(*) as NB FROM ";
@@ -83,12 +84,16 @@ function checkAccess($object) {
     $sql .= checkColumn($entity."_ID");
     $sql .= " = :entityID";
 //echo $sql.'<br/>';
+    $sync->debug['checkAccess'] = $sql;
+    $sync->debug['checkAccessParam'] =  $parameters;
+    $sync->debug['checkAccessRslt'] = array();
     $nbLinesRequest = $pdo->prepare($sql);
     $nbLinesRequest->execute($parameters);
 
     while($lign = $nbLinesRequest->fetch()) {
         //var_dump($lign);
         //echo '<br/>';
+        array_push($sync->debug['checkAccessRslt'],$lign);
         if($lign['TYPE'] == 'parent' && $lign['NB'] == 0) {
             return AccessRightState::Denied;
         }
@@ -153,6 +158,8 @@ function insertEntity($value) {
     $str .= ")";
 
     executeSQL($str, $arrayValues,$id, $entity);
+
+    addChanges($entity, $id, $deviceID);
 }
 
 function updateEntity($value) {
@@ -184,5 +191,28 @@ function updateEntity($value) {
     $sync->debug["UpdateValues"] = $arrayValues;
 
     executeSQL($str,$arrayValues,$id, $entity);
+
+    addChanges($entity, $id, $deviceID);
+}
+
+function addChanges($entity,$uuid,$deviceID) {
+    global $pdo,$sync;
+    $sql = "INSERT INTO ChangesTracker (`ChangesTracker_DATE`,`ChangesTracker_ENTITY`,`ChangesTracker_ObjID`,`ChangesTracker_DEVICE`,`ChangesTracker_Type`)
+        SELECT CURRENT_TIMESTAMP as ChangesTracker_DATE, :entity as ChangesTracker_ENTITY, :id as ChangesTracker_ObjID, DEVICE_ID as ChangesTracker_DEVICE, 'modif' as ChangesTracker_Type FROM DEVICES
+
+            where DEVICE_ID <> :device_id and DEVICE_USER = (
+                SELECT DEVICE_USER FROM DEVICES WHERE DEVICE_ID = :device_id
+            )";
+        //SELECT CURRENT_TIMESTAMP as ChangesTracker_DATE, ':entity' as ChangesTracker_ENTITY, :id as ChangesTracker_ObjID, :device_id as ChangesTracker_DEVICE, 'modif' as ChangesTracker_Type FROM :entity
+        //left join DEVICES on DEVICE_ID = :entity_DEVICE
+        //where :entity_ID = :id
+    try {
+        $query = $pdo->prepare($sql);
+        $query->execute(array('id' => $uuid,'device_id' => $deviceID,'entity' => $entity));
+    } catch (PDOException $e) {
+        $sync->error = new CPError(410,[$e, $query->queryString,array('id' => $uuid)]);
+        $sync->debug["error"] = $query->errorInfo();
+        $sync->exit();
+    }
 }
 ?>
