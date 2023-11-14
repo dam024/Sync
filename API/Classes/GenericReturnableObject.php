@@ -48,6 +48,9 @@ abstract class GenericReturnableObject {
         if(!$IS_TEST_SYSTEM || is_null($this->debug) || count((array)$this->debug) == 0 /*|| count(get_object_vars($this->debug)) == 0*/) {
             unset($this->debug);
         }
+        if(!$IS_TEST_SYSTEM && isset($this->error)) {
+            $this->error->userInfos = array();//We delete the debug infos when we are not in test mode!
+        }
         echo $this->json();
         exit();
     }

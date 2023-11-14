@@ -50,15 +50,15 @@ $user = $pdo->prepare("SELECT DEVICE_PRIVATEKEY FROM DEVICES left join Users on 
 $user->execute(array('userID' => $userID, 'deviceID' => $deviceID));
 if($user->errorCode() != "00000") {
 //new CPError(407, 'Impossible to get account', $user->errorInfo());
-    accessError(407, 'Impossible to get account');
+    accessError(407, 'Impossible to get account',["It looks like there was an sql error...",$user->errorInfo()]);
 }
 if($user->rowCount() != 1) {
-    accessError();
+    accessError(405,'Access denied',["The account doesn't exist or there is a problem in  the data. Number of account found: ".$user->rowCount()." but expected only 1"]);
 } else {
     $GENERAL_DEBUG['AccessLineFound'] = true;
     $lign = $user->fetch();
     if(!password_verify($privateKey, $lign["DEVICE_PRIVATEKEY"])) {
-        accessError();
+        accessError(405,'Access denied',["Wrong password"]);
     }
 }
 
@@ -67,7 +67,7 @@ $GENERAL_DEBUG['AccessAllowed'] = true;
 function accessError($nb = 405, $msg = 'Access denied',$debugInfos=[]) {
     global $pdo;
     $returnableObject = new SingleError();
-    $returnableObject->error = new CPError($nb,$msg);
+    $returnableObject->error = new CPError($nb,$msg,$debugInfos);
     /*echo json_encode(get_object_vars($ret));
     if($pdo->inTransaction()) {
         $pdo->rollback();
