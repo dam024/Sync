@@ -25,31 +25,38 @@
 	 * 		- cleanUp: Bool -> Indicate if we need the clean up the test or not. This will only clean up!
 	 * 		- sessionLifetime: Int = 10 -> Lifetime of the current session. So that the data do not interfere. The value is in seconds. 
 	 */
-	include_once '../config.php';
+	//echo __DIR__;
+	require_once __DIR__ . '/../config.php';
 	require_once CLASSES.'/TestSystemManager.php';
 	require_once CLASSES.'/CPError.php';
 	use \Coproman\API\CPError;
 
 	$GENERAL_DEBUG = array();
+	if(isset($_SERVER['HTTP_HOST']) && !isset($IS_LOCAL_SYSTEM)) {
+		$IS_LOCAL_SYSTEM = ($_SERVER['HTTP_HOST'] == "localhost:8888");
+	}
+	if(!isset($IS_TEST_SYSTEM)) {
+		$IS_TEST_SYSTEM = (isset($_POST['test']) && $_POST['test']);
+	}
 
-	if($_SERVER['HTTP_HOST'] == "localhost:8888") {
-		if(isset($_POST['test']) && $_POST['test']) {
+	if($IS_LOCAL_SYSTEM) {
+		if($IS_TEST_SYSTEM) {
 			$pdo = new PDO('mysql:host=localhost;port=8888;dbname='.\Config\conf_localTestDB.';charset=utf8;', \Config\conf_localhostUser, \Config\conf_localhostPassword);
-			$IS_TEST_SYSTEM = true;
+			//$IS_TEST_SYSTEM = true;
 			$dbName = Config\conf_localTestDB;
 			$dbUser = Config\conf_localhostUser;
 			$dbPassword = Config\conf_localhostPassword;
 		} else {
-			$pdo = new PDO('mysql:host=localhost;port=8888;dbname='.$conf_localDB.';charset=utf8;', 'root', 'root');
-			$IS_TEST_SYSTEM = false;
+			$pdo = new PDO('mysql:host=localhost;port=8888;dbname='.\Config\conf_localDB.';charset=utf8;', 'root', 'root');
+			//$IS_TEST_SYSTEM = false;
 		}
 	} else {
-		if(isset($_POST['test']) && $_POST['test']) {
-			$pdo = new PDO('mysql:host=localhost;dbname='.$conf_serverTestDB.';charset=utf8;', $conf_serverTestUser, $conf_serverTestPassword);
-			$IS_TEST_SYSTEM = true;
+		if($IS_TEST_SYSTEM) {
+			$pdo = new PDO('mysql:host=localhost;dbname='.\Config\conf_serverTestDB.';charset=utf8;', \Config\conf_serverTestUser, \Config\conf_serverTestPassword);
+			//$IS_TEST_SYSTEM = true;
 		} else {
-			$pdo = new PDO('mysql:host=localhost;dbname='.$conf_serverDB.';charset=utf8;', $conf_serverUser, $conf_serverPassword);
-			$IS_TEST_SYSTEM = false;
+			$pdo = new PDO('mysql:host=localhost;dbname='.\Config\conf_serverDB.';charset=utf8;', \Config\conf_serverUser, \Config\conf_serverPassword);
+			//$IS_TEST_SYSTEM = false;
 		}
 	}
 	$pdo->setAttribute(PDO::ATTR_CASE,PDO::CASE_UPPER);//Ensure that all returned table names have upper case

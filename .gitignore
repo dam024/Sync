@@ -1,6 +1,7 @@
 //We remove the tests files, because they may contain javascript files which may contain sensitive informations
 Tests/*
-!Tests/TestBaseAPIs.sql
+//!Tests/TestBaseAPIs.sql
+!Tests/*.sql
 
 //We ignore the config.php file, because the config depends on the system
 config.php
