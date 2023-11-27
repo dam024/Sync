@@ -3,6 +3,11 @@ Tests/*
 //!Tests/TestBaseAPIs.sql
 !Tests/*.sql
 
+//Ignore tests...
+testNodeJS.js
+ignoreFiles.json
+
+
 //We ignore the config.php file, because the config depends on the system
 config.php
 
