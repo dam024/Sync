@@ -53,6 +53,9 @@
 	} else {
 		if($IS_TEST_SYSTEM) {
 			$pdo = new PDO('mysql:host=localhost;dbname='.\Config\conf_serverTestDB.';charset=utf8;', \Config\conf_serverTestUser, \Config\conf_serverTestPassword);
+			$dbName = Config\conf_serverTestDB;
+			$dbUser = Config\conf_serverTestUser;
+			$dbPassword = Config\conf_serverTestPassword;
 			//$IS_TEST_SYSTEM = true;
 		} else {
 			$pdo = new PDO('mysql:host=localhost;dbname='.\Config\conf_serverDB.';charset=utf8;', \Config\conf_serverUser, \Config\conf_serverPassword);
@@ -123,8 +126,9 @@
 
 			if($all_tables->rowCount() > 0) {
 				$sql = "";//"TRUNCATE ";
+				$tableName = ($IS_LOCAL_SYSTEM) ? \Config\conf_localTestDB : \Config\conf_serverTestDB;
 				while($lign = $all_tables->fetch()) {
-					$sql .= "TRUNCATE ".$lign["TABLES_IN_TESTBASEAPIS"];
+					$sql .= "TRUNCATE ".$lign["TABLES_IN_".strtoupper($tableName)];
 					$sql .= "; ";
 				}
 				//$sql = substr($sql, 0,-2);

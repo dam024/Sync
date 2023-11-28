@@ -29,7 +29,7 @@ $nb_error = 0;
 $file = fopen('databaseUpdates.sql','w');
 fwrite($file,"
 --
---Update the database structure
+-- Update the database structure
 --
 	");
 //-----------------------   CHANGES IN TABLES  -----------------------------
